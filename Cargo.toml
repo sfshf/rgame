@@ -1,0 +1,3 @@
+[workspace]
+members = ["dungeon"]
+resolver = "2"
