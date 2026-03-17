@@ -3,6 +3,8 @@ use specs::prelude::*;
 
 mod components;
 mod damage_system;
+mod gamelog;
+mod gui;
 mod map;
 mod map_indexing_system;
 mod melee_combat_system;
@@ -13,6 +15,8 @@ mod visibility_system;
 
 use components::*;
 use damage_system::*;
+use gamelog::*;
+use gui::*;
 use map::*;
 use map_indexing_system::*;
 use melee_combat_system::*;
@@ -65,6 +69,7 @@ impl GameState for State {
         }
         damage_system::delete_the_dead(&mut self.ecs);
         draw_map(&self.ecs, ctx);
+        gui::draw_ui(&self.ecs, ctx);
         let positions = self.ecs.read_storage::<Position>();
         let renderables = self.ecs.read_storage::<Renderable>();
         let map = self.ecs.fetch::<Map>();
@@ -94,9 +99,10 @@ impl State {
 }
 
 fn main() -> rltk::BError {
-    let context = rltk::RltkBuilder::simple80x50()
+    let mut context = rltk::RltkBuilder::simple80x50()
         .with_title("Roguelike Tutorial")
         .build()?;
+    context.with_post_scanlines(true); // Optional post-processing for that truly retro feeling
     let mut gs = State { ecs: World::new() };
 
     gs.ecs.register::<Position>();
@@ -187,6 +193,9 @@ fn main() -> rltk::BError {
     }
     gs.ecs.insert(map);
     gs.ecs.insert(RunState::PreRun);
+    gs.ecs.insert(gamelog::GameLog {
+        entries: vec!["Welcome to Rusty Roguelike".to_string()],
+    });
     // It's highly likely that systems will often want to know where the player is - so lets add that as a resource.
     gs.ecs.insert(Point::new(player_x, player_y));
     rltk::main_loop(context, gs)
