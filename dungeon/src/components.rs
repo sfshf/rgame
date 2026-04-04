@@ -74,7 +74,7 @@ impl SufferDamage {
 pub struct Item {}
 
 #[derive(Component, Debug)]
-pub struct Potion {
+pub struct ProvidesHealing {
     pub heal_amount: i32,
 }
 
@@ -91,10 +91,39 @@ pub struct WantsToPickupItem {
 
 #[derive(Component, Debug)]
 pub struct WantsToDrinkPotion {
-    pub potion: Entity,
+    pub item: Entity,
 }
 
 #[derive(Component, Debug)]
 pub struct WantsToDropItem {
     pub item: Entity,
+}
+
+#[derive(Component, Debug)]
+pub struct Consumable {}
+
+#[derive(Component, Debug)]
+pub struct Ranged {
+    pub range: i32,
+}
+
+#[derive(Component, Debug)]
+pub struct InflictsDamage {
+    pub damage: i32,
+}
+
+#[derive(Component, Debug, ConvertSaveload, Clone)]
+pub struct WantsToUseItem {
+    pub item: Entity,
+    pub target: Option<rltk::Point>,
+}
+
+#[derive(Component, Debug)]
+pub struct AreaOfEffect {
+    pub radius: i32,
+}
+
+#[derive(Component, Debug)]
+pub struct Confusion {
+    pub turns: i32,
 }

@@ -1,4 +1,4 @@
-use crate::{Map, Player, Position, Viewshed};
+use crate::{Player, Position, Viewshed, map::Map};
 use rltk::{Point, field_of_view};
 use specs::prelude::*;
 
