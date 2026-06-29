@@ -1,6 +1,6 @@
 use crate::{
     Monster, Position, RunState, Viewshed,
-    components::{Confusion, Name, WantsToMelee},
+    components::{Confusion, WantsToMelee},
     map::Map,
 };
 use rltk::Point;

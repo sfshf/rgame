@@ -1,6 +1,6 @@
 use std::cmp::{max, min};
 
-use rltk::{Point, Rltk, VirtualKeyCode, console};
+use rltk::{Point, Rltk, VirtualKeyCode};
 use specs::prelude::*;
 use specs_derive::Component;
 
@@ -8,7 +8,7 @@ use crate::{
     RunState, State,
     components::{CombatStats, Item, Position, Viewshed, WantsToMelee, WantsToPickupItem},
     gamelog::GameLog,
-    map::{Map, TileType},
+    map::Map,
 };
 
 #[derive(Component, Debug)]
@@ -91,6 +91,9 @@ pub fn player_input(gs: &mut State, ctx: &mut Rltk) -> RunState {
             VirtualKeyCode::I => return RunState::ShowInventory,
             // Drop items
             VirtualKeyCode::D => return RunState::ShowDropItem,
+
+            // Save and Quit
+            VirtualKeyCode::Escape => return RunState::SaveGame,
 
             _ => return RunState::AwaitingInput,
         },

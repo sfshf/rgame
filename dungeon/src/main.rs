@@ -1,5 +1,5 @@
-use rltk::{GameState, Point, RGB, Rltk, VirtualKeyCode};
-use specs::{prelude::*, rayon::spawn};
+use rltk::{GameState, Point, Rltk};
+use specs::prelude::*;
 
 mod components;
 mod damage_system;
@@ -9,6 +9,7 @@ mod inventory_system;
 mod map;
 mod map_indexing_system;
 mod melee_combat_system;
+mod menu;
 mod monster_ai_system;
 mod player;
 mod rect;
@@ -25,6 +26,8 @@ use rect::*;
 use spawner::*;
 use visibility_system::*;
 
+use crate::map::Map;
+
 #[derive(PartialEq, Copy, Clone)]
 pub enum RunState {
     AwaitingInput,
@@ -33,7 +36,14 @@ pub enum RunState {
     MonsterTurn,
     ShowInventory,
     ShowDropItem,
-    ShowTargeting { range: i32, item: Entity },
+    ShowTargeting {
+        range: i32,
+        item: Entity,
+    },
+    MainMenu {
+        menu_selection: gui::MainMenuSelection,
+    },
+    SaveGame,
 }
 
 pub struct State {
@@ -42,33 +52,41 @@ pub struct State {
 
 impl GameState for State {
     fn tick(&mut self, ctx: &mut Rltk) {
-        ctx.cls();
-
-        map::draw_map(&self.ecs, ctx);
-
-        {
-            let positions = self.ecs.read_storage::<Position>();
-            let renderables = self.ecs.read_storage::<Renderable>();
-            let map = self.ecs.fetch::<map::Map>();
-            let mut data = (&positions, &renderables).join().collect::<Vec<_>>();
-            data.sort_by(|&a, &b| b.1.render_order.cmp(&a.1.render_order));
-            for (pos, render) in data.iter() {
-                let idx = map.xy_idx(pos.x, pos.y);
-                if map.visible_tiles[idx] {
-                    ctx.set(pos.x, pos.y, render.fg, render.bg, render.glyph);
-                }
-            }
-            gui::draw_ui(&self.ecs, ctx);
-        }
-
         let mut newrunstate;
         {
             let runstate = self.ecs.fetch::<RunState>();
             newrunstate = *runstate;
         }
 
+        ctx.cls();
+
         // Turn-based game, in a tick-based world
         match newrunstate {
+            RunState::MainMenu { menu_selection } => {
+                let result = menu::main_menu(self, ctx);
+                match result {
+                    gui::MainMenuResult::NoSelection { selected } => {
+                        newrunstate = RunState::MainMenu {
+                            menu_selection: selected,
+                        }
+                    }
+                    gui::MainMenuResult::Selected { selected } => match selected {
+                        gui::MainMenuSelection::NewGame => newrunstate = RunState::PreRun,
+                        gui::MainMenuSelection::LoadGame => newrunstate = RunState::PreRun,
+                        gui::MainMenuSelection::Quit => {
+                            std::process::exit(0);
+                        }
+                    },
+                }
+            }
+            RunState::SaveGame => {
+                let data = serde_json::to_string(&*self.ecs.fetch::<Map>()).unwrap();
+                println!("{}", data);
+
+                newrunstate = RunState::MainMenu {
+                    menu_selection: gui::MainMenuSelection::LoadGame,
+                }
+            }
             RunState::PreRun => {
                 self.run_systems();
                 newrunstate = RunState::AwaitingInput;
@@ -152,7 +170,26 @@ impl GameState for State {
                     }
                 }
             }
+            _ => {
+                map::draw_map(&self.ecs, ctx);
+
+                {
+                    let positions = self.ecs.read_storage::<Position>();
+                    let renderables = self.ecs.read_storage::<Renderable>();
+                    let map = self.ecs.fetch::<map::Map>();
+                    let mut data = (&positions, &renderables).join().collect::<Vec<_>>();
+                    data.sort_by(|&a, &b| b.1.render_order.cmp(&a.1.render_order));
+                    for (pos, render) in data.iter() {
+                        let idx = map.xy_idx(pos.x, pos.y);
+                        if map.visible_tiles[idx] {
+                            ctx.set(pos.x, pos.y, render.fg, render.bg, render.glyph);
+                        }
+                    }
+                    gui::draw_ui(&self.ecs, ctx);
+                }
+            }
         }
+
         {
             let mut runwriter = self.ecs.write_resource::<RunState>();
             *runwriter = newrunstate;
