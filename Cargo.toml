@@ -1,3 +1,3 @@
 [workspace]
-members = ["dungeon", "rhizel"]
+members = ["dungeon", "rhizel", "nexus"]
 resolver = "2"
